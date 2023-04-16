@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+
+<!-- Create a div where the graph will take place -->
+
+<div style="white-space: nowrap;">
+    <div id="primarygraph" style="display: inline"></div>
+    <div id="secondgraph" style="display: inline"></div>
+</div>
+<div style="white-space: nowrap;">
+    <div id="thirdgraph" style="display: inline"></div>
+    <div id="fourthgraph" style="display: inline"></div>
+</div>
+<!-- A bit of style -->
+<style>
+    .axis {
+        opacity: 0.4;
+    }
+
+    .axis:hover {
+        opacity: 1;
+    }
+</style>
+
+<script>
+
+    // set the dimensions and margins of the graph
+    var margin = { top: 30, right: 125, bottom: 30, left: 75 },
+        width = 625 - margin.left - margin.right,
+        height = 400 - margin.top - margin.bottom;
+
+    var div = d3.select("#primarygraph").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0)
+        .style("position", "absolute")
+        .style("background-color", "white")
+        .style("border", "solid")
+        .style("border-width", "2px")
+        .style("border-radius", "5px")
+        .style("padding", "5px")
+
+    // append the svg object to the body of the page
+    var svg = d3.select("#primarygraph")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+    var svg2 = d3.select("#secondgraph")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+    var svg3 = d3.select("#thirdgraph")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+    var svg4 = d3.select("#fourthgraph")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+    // Parse the Data
+    d3.csv("NewData.csv", function (data) {
+
+        // Get the Level 1 categories
+        var dataFilter = data.filter(function (d) { return d.level == "level1" })
+
+        // Color scale: give me a specie name, I return a color
+        var color = d3.scaleOrdinal()
+            .domain(dataFilter.map(function (d) { return d.category; }))
+            .range(["#332288", "#117733", "#44AA99", "#88CCEE", "#DDCC77", "#CC6677", "#AA4499"])
+
+        // Here I set the list of dimension manually to control the order of axis:
+        dimensions = ["Increased-a-lot",
+            "Increased-a-little",
+            "Same",
+            "Decreased-a-little",
+            "Decreased-a-lot",
+            "Dont-know"]
+
+        // For each dimension, I build a linear scale. I store all in a y object
+        var y = {}
+        for (i in dimensions) {
+            name = dimensions[i]
+            y[name] = d3.scaleLinear()
+                .domain([0, 60]) // --> Same axis range for each group
+                // --> different axis range for each group --> .domain( [d3.extent(data, function(d) { return +d[name]; })] )
+                .range([height, 0])
+        }
+
+        // Build the X scale -> it find the best position for each Y axis
+        x = d3.scalePoint()
+            .range([0, width])
+            .domain(dimensions);
+
+        // X axis label
+        svg.append("text")
+            .attr("class", "x label")
+            .attr("text-anchor", "middle")
+            .attr("x", width / 2)
+            .attr("y", height + 20)
+            .text("Survey response across various categories")
+            .style("font-size", "12.5px");
+
+        // Y axis label
+        svg.append("text")
+            .attr("class", "y label")
+            .attr("text-anchor", "middle")
+            .attr("x", margin.left - 124)
+            .attr("y", height / 2)
+            .text("% people")
+            .style("font-size", "12.5px");
+
+        // Add the legend
+        var size = 10
+        svg.selectAll("myrect")
+            .data(dataFilter.map(function (d) { return d.category; }))
+            .enter()
+            .append("rect")
+            .attr("x", 435)
+            .attr("y", function (d, i) { return 10 + i * (size + 5) }) // 100 is where the first dot appears. 25 is the distance between dots
+            .attr("width", size)
+            .attr("height", size)
+            .style("fill", function (d) { return color(d) })
+
+        svg.selectAll("mylabels")
+            .data(dataFilter.map(function (d) { return d.category; }))
+            .enter()
+            .append("text")
+            .attr("x", 435 + size * 1.2)
+            .attr("y", function (d, i) { return 10 + i * (size + 5) + (size / 2) }) // 100 is where the first dot appears. 25 is the distance between dots
+            .style("fill", "black")
+            .text(function (d) { return d })
+            .attr("text-anchor", "left")
+            .style("alignment-baseline", "middle")
+            .style("font-size", "10px");
+
+        // Highlight the specie that is hovered
+        var highlight = function (d) {
+
+            div.transition()
+                .duration(200)
+                .style("opacity", .9);
+            div.html(d.category)
+                .style("left", (d3.mouse(this)[0] + 100) + "px")
+                .style("top", (d3.mouse(this)[1] + 20) + "px")
+                .style("font-size", "12.5px");
+
+            //d3.event.preventDefault();
+            selected_specie = d.category
+
+            // first every group turns grey
+            d3.selectAll(".line")
+                .transition().duration(200)
+                .style("stroke", "lightgrey")
+                .style("opacity", "0.2")
+            // Second the hovered specie takes its color
+            d3.selectAll("." + selected_specie)
+                .transition().duration(200)
+                .style("stroke", color(selected_specie))
+                .style("opacity", "1")
+
+            // Second graph code starts here 
+            var levelFilter = data.filter(function (d) { return (d.level == "level2" && d.supercategory == selected_specie) })
+
+            // Create long format data to find min and max dynamically
+            var transposedData = []
+            for (let key of Object.keys(levelFilter[0])) {
+                if (key !== "category" && key !== "level" && key !== "supercategory") {
+                    for (let index of levelFilter) {
+                        var obj = {};
+                        obj['dimension'] = key;
+                        obj['age_group'] = index.category
+                        obj['percent'] = index[key]
+                        transposedData.push(obj)
+                    }
+                }
+            }
+
+            var range = d3.extent(transposedData, function (d) { return +d.percent; })
+
+            var color2 = d3.scaleOrdinal()
+                .domain(levelFilter.map(function (d) { return d.category; }))
+                .range(["#332288", "#117733", "#44AA99", "#88CCEE", "#DDCC77"])
+
+            // For each dimension, I build a linear scale. I store all in a y object
+            var y2 = {}
+            for (i in dimensions) {
+                name = dimensions[i]
+                y2[name] = d3.scaleLinear()
+                    .domain([0, (Math.round(range[1] / 10) * 10) + 5]) // --> Same axis range for each group
+                    // --> different axis range for each group --> .domain( [d3.extent(data, function(d) { return +d[name]; })] )
+                    .range([height, 0])
+            }
+
+            // Build the X scale -> it find the best position for each Y axis
+            x2 = d3.scalePoint()
+                .range([0, width])
+                .domain(dimensions);
+
+            // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
+            function path2(d) {
+                return d3.line()(dimensions.map(function (p) { return [x2(p), y2[p](d[p])]; }));
+            }
+
+            svg2
+                .selectAll("myPath")
+                .data(levelFilter)
+                .enter()
+                .append("path")
+                .attr("class", function (d) { return "line " + d.category }) // 2 class for each line: 'line' and the group name
+                .attr("d", path2)
+                .style("fill", "none")
+                .style("stroke-width", 3)
+                .style("stroke", function (d) { return (color2(d.category)) })
+                .style("opacity", 1)
+
+            // Draw the axis:
+            svg2.selectAll("myAxis")
+                // For each dimension of the dataset I add a 'g' element:
+                .data(dimensions).enter()
+                .append("g")
+                .attr("class", "axis")
+                // I translate this element to its right position on the x axis
+                .attr("transform", function (d) { return "translate(" + x2(d) + ")"; })
+                // And I build the axis with the call function
+                .each(function (d) { d3.select(this).call(d3.axisLeft().ticks(5).scale(y2[d])); })
+                // Add axis title
+                .append("text")
+                .style("text-anchor", "middle")
+                .attr("y", -9)
+                .text(function (d) { return d; })
+                .style("fill", "black")
+
+            // X axis label
+            svg2.append("text")
+                .attr("class", "x label")
+                .attr("text-anchor", "middle")
+                .attr("x", width / 2)
+                .attr("y", height + 20)
+                .text("Survey response across age groups for " + selected_specie + " category")
+                .style("font-size", "12.5px");
+
+            // Y axis label
+            svg2.append("text")
+                .attr("class", "y label")
+                .attr("text-anchor", "middle")
+                .attr("x", margin.left - 124)
+                .attr("y", height / 2)
+                .text("% people")
+                .style("font-size", "12.5px");
+
+            // Add the legend
+            svg2.selectAll("myrect")
+                .data(levelFilter.map(function (d) { return d.category; }))
+                .enter()
+                .append("rect")
+                .attr("x", 435)
+                .attr("y", function (d, i) { return 10 + i * (size + 5) }) // 100 is where the first dot appears. 25 is the distance between dots
+                .attr("width", size)
+                .attr("height", size)
+                .style("fill", function (d) { return color2(d) })
+
+            svg2.selectAll("mylabels")
+                .data(levelFilter.map(function (d) { return d.category; }))
+                .enter()
+                .append("text")
+                .attr("x", 435 + size * 1.2)
+                .attr("y", function (d, i) { return 10 + i * (size + 5) + (size / 2) }) // 100 is where the first dot appears. 25 is the distance between dots
+                .style("fill", "black")
+                .text(function (d) { return d })
+                .attr("text-anchor", "left")
+                .style("alignment-baseline", "middle")
+                .style("font-size", "10px");
+
+            // Third graph starts here-----
+            var levelFilter3 = data.filter(function (d) { return (d.level == "level3" && d.supercategory == selected_specie) })
+
+            // Create long format data to find min and max dynamically
+            var transposedData3 = []
+            for (let key of Object.keys(levelFilter3[0])) {
+                if (key !== "category" && key !== "level" && key !== "supercategory") {
+                    for (let index of levelFilter3) {
+                        var obj = {};
+                        obj['dimension'] = key;
+                        obj['age_group'] = index.category
+                        obj['percent'] = index[key]
+                        transposedData3.push(obj)
+                    }
+                }
+            }
+
+            var range3 = d3.extent(transposedData3, function (d) { return +d.percent; })
+
+            var color3 = d3.scaleOrdinal()
+                .domain(levelFilter3.map(function (d) { return d.category; }))
+                .range(["#332288", "#117733", "#44AA99", "#88CCEE", "#DDCC77"])
+
+            // For each dimension, I build a linear scale. I store all in a y object
+            var y3 = {}
+            for (i in dimensions) {
+                name = dimensions[i]
+                y3[name] = d3.scaleLinear()
+                    .domain([0, (Math.round(range3[1] / 10) * 10) + 5]) // --> Same axis range for each group
+                    // --> different axis range for each group --> .domain( [d3.extent(data, function(d) { return +d[name]; })] )
+                    .range([height, 0])
+            }
+
+            // Build the X scale -> it find the best position for each Y axis
+            x3 = d3.scalePoint()
+                .range([0, width])
+                .domain(dimensions);
+
+            // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
+            function path3(d) {
+                return d3.line()(dimensions.map(function (p) { return [x3(p), y3[p](d[p])]; }));
+            }
+
+            svg3
+                .selectAll("myPath")
+                .data(levelFilter3)
+                .enter()
+                .append("path")
+                .attr("class", function (d) { return "line " + d.category }) // 2 class for each line: 'line' and the group name
+                .attr("d", path3)
+                .style("fill", "none")
+                .style("stroke-width", 3)
+                .style("stroke", function (d) { return (color3(d.category)) })
+                .style("opacity", 1)
+
+            // Draw the axis:
+            svg3.selectAll("myAxis")
+                // For each dimension of the dataset I add a 'g' element:
+                .data(dimensions).enter()
+                .append("g")
+                .attr("class", "axis")
+                // I translate this element to its right position on the x axis
+                .attr("transform", function (d) { return "translate(" + x3(d) + ")"; })
+                // And I build the axis with the call function
+                .each(function (d) { d3.select(this).call(d3.axisLeft().ticks(5).scale(y3[d])); })
+                // Add axis title
+                .append("text")
+                .style("text-anchor", "middle")
+                .attr("y", -9)
+                .text(function (d) { return d; })
+                .style("fill", "black")
+
+            // X axis label
+            svg3.append("text")
+                .attr("class", "x label")
+                .attr("text-anchor", "middle")
+                .attr("x", width / 2)
+                .attr("y", height + 20)
+                .text("Survey response across employment types for " + selected_specie + " category")
+                .style("font-size", "12.5px");
+
+            // Y axis label
+            svg3.append("text")
+                .attr("class", "y label")
+                .attr("text-anchor", "middle")
+                .attr("x", margin.left - 124)
+                .attr("y", height / 2)
+                .text("% people")
+                .style("font-size", "12.5px");
+
+            // Add the legend
+            svg3.selectAll("myrect")
+                .data(levelFilter3.map(function (d) { return d.category; }))
+                .enter()
+                .append("rect")
+                .attr("x", 435)
+                .attr("y", function (d, i) { return 10 + i * (size + 5) }) // 100 is where the first dot appears. 25 is the distance between dots
+                .attr("width", size)
+                .attr("height", size)
+                .style("fill", function (d) { return color3(d) })
+
+            svg3.selectAll("mylabels")
+                .data(levelFilter3.map(function (d) { return d.category; }))
+                .enter()
+                .append("text")
+                .attr("x", 435 + size * 1.2)
+                .attr("y", function (d, i) { return 10 + i * (size + 5) + (size / 2) }) // 100 is where the first dot appears. 25 is the distance between dots
+                .style("fill", "black")
+                .text(function (d) { return d })
+                .attr("text-anchor", "left")
+                .style("alignment-baseline", "middle")
+                .style("font-size", "10px");
+
+            // Fourth graph starts here-----
+            var levelFilter4 = data.filter(function (d) { return (d.level == "level4" && d.supercategory == selected_specie) })
+
+            // Create long format data to find min and max dynamically
+            var transposedData4 = []
+            for (let key of Object.keys(levelFilter4[0])) {
+                if (key !== "category" && key !== "level" && key !== "supercategory") {
+                    for (let index of levelFilter4) {
+                        var obj = {};
+                        obj['dimension'] = key;
+                        obj['age_group'] = index.category
+                        obj['percent'] = index[key]
+                        transposedData4.push(obj)
+                    }
+                }
+            }
+
+            var range4 = d3.extent(transposedData4, function (d) { return +d.percent; })
+            var color4 = d3.scaleOrdinal()
+                .domain(levelFilter4.map(function (d) { return d.category; }))
+                .range(["#332288", "#117733", "#44AA99", "#88CCEE", "#DDCC77", "#CC6677"])
+
+            // For each dimension, I build a linear scale. I store all in a y object
+            var y4 = {}
+            for (i in dimensions) {
+                name = dimensions[i]
+                y4[name] = d3.scaleLinear()
+                    .domain([0, (Math.round(range4[1] / 10) * 10) + 5]) // --> Same axis range for each group
+                    // --> different axis range for each group --> .domain( [d3.extent(data, function(d) { return +d[name]; })] )
+                    .range([height, 0])
+            }
+
+            // Build the X scale -> it find the best position for each Y axis
+            x4 = d3.scalePoint()
+                .range([0, width])
+                .domain(dimensions);
+
+            // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
+            function path4(d) {
+                return d3.line()(dimensions.map(function (p) { return [x4(p), y4[p](d[p])]; }));
+            }
+
+            svg4
+                .selectAll("myPath")
+                .data(levelFilter4)
+                .enter()
+                .append("path")
+                .attr("class", function (d) { return "line " + d.category }) // 2 class for each line: 'line' and the group name
+                .attr("d", path4)
+                .style("fill", "none")
+                .style("stroke-width", 3)
+                .style("stroke", function (d) { return (color4(d.category)) })
+                .style("opacity", 1)
+
+            // Draw the axis:
+            svg4.selectAll("myAxis")
+                // For each dimension of the dataset I add a 'g' element:
+                .data(dimensions).enter()
+                .append("g")
+                .attr("class", "axis")
+                // I translate this element to its right position on the x axis
+                .attr("transform", function (d) { return "translate(" + x4(d) + ")"; })
+                // And I build the axis with the call function
+                .each(function (d) { d3.select(this).call(d3.axisLeft().ticks(5).scale(y4[d])); })
+                // Add axis title
+                .append("text")
+                .style("text-anchor", "middle")
+                .attr("y", -9)
+                .text(function (d) { return d; })
+                .style("fill", "black")
+
+            // X axis label
+            svg4.append("text")
+                .attr("class", "x label")
+                .attr("text-anchor", "middle")
+                .attr("x", width / 2)
+                .attr("y", height + 20)
+                .text("Survey response across income groups for " + selected_specie + " category")
+                .style("font-size", "12.5px");
+
+            // Y axis label
+            svg4.append("text")
+                .attr("class", "y label")
+                .attr("text-anchor", "middle")
+                .attr("x", margin.left - 124)
+                .attr("y", height / 2)
+                .text("% people")
+                .style("font-size", "12.5px");
+
+            // Add the legend
+            svg4.selectAll("myrect")
+                .data(levelFilter4.map(function (d) { return d.category; }))
+                .enter()
+                .append("rect")
+                .attr("x", 435)
+                .attr("y", function (d, i) { return 10 + i * (size + 5) }) // 100 is where the first dot appears. 25 is the distance between dots
+                .attr("width", size)
+                .attr("height", size)
+                .style("fill", function (d) { return color4(d) })
+
+            svg4.selectAll("mylabels")
+                .data(levelFilter4.map(function (d) { return d.category; }))
+                .enter()
+                .append("text")
+                .attr("x", 435 + size * 1.2)
+                .attr("y", function (d, i) { return 10 + i * (size + 5) + (size / 2) }) // 100 is where the first dot appears. 25 is the distance between dots
+                .style("fill", "black")
+                .text(function (d) { return d })
+                .attr("text-anchor", "left")
+                .style("alignment-baseline", "middle")
+                .style("font-size", "10px");
+        }
+
+        // Unhighlight
+        var doNotHighlight = function (d) {
+            svg.selectAll(".line")
+                .transition().duration(200)
+                .style("stroke", function (d) { return (color(d.category)) })
+                .style("opacity", "1")
+
+            svg2.selectAll("*").remove();
+            svg3.selectAll("*").remove();
+            svg4.selectAll("*").remove();
+            div.transition()
+                .duration(500)
+                .style("opacity", 0);
+
+        }
+
+        // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
+        function path(d) {
+            return d3.line()(dimensions.map(function (p) { return [x(p), y[p](d[p])]; }));
+        }
+
+        // Draw the lines
+        svg
+            .selectAll("myPath")
+            .data(dataFilter)
+            .enter()
+            .append("path")
+            .attr("class", function (d) { return "line " + d.category }) // 2 class for each line: 'line' and the group name
+            .attr("d", path)
+            .style("fill", "none")
+            .style("stroke-width", 3)
+            .style("stroke", function (d) { return (color(d.category)) })
+            .style("opacity", 1)
+            .on("mouseover", highlight)
+            .on("mouseleave", doNotHighlight)
+
+        // Draw the axis:
+        svg.selectAll("myAxis")
+            // For each dimension of the dataset I add a 'g' element:
+            .data(dimensions).enter()
+            .append("g")
+            .attr("class", "axis")
+            // I translate this element to its right position on the x axis
+            .attr("transform", function (d) { return "translate(" + x(d) + ")"; })
+            // And I build the axis with the call function
+            .each(function (d) { d3.select(this).call(d3.axisLeft().ticks(5).scale(y[d])); })
+            // Add axis title
+            .append("text")
+            .style("text-anchor", "middle")
+            .attr("y", -9)
+            .text(function (d) { return d; })
+            .style("fill", "black")
+
+    })
+
+</script>
