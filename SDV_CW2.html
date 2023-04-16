@@ -76,7 +76,7 @@
             "translate(" + margin.left + "," + margin.top + ")");
 
     // Parse the Data
-    d3.csv("NewData.csv", function (data) {
+    d3.csv("https://raw.githubusercontent.com/deba301996/SDV/main/SurveyDataCleaned.csv", function (data) {
 
         // Get the Level 1 categories
         var dataFilter = data.filter(function (d) { return d.level == "level1" })
