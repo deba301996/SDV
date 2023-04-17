@@ -1,3 +1,7 @@
+<!--
+    The code has been referenced from the following source:
+    https://d3-graph-gallery.com/graph/parallel_custom.html
+-->
 <!DOCTYPE html>
 <meta charset="utf-8">
 
@@ -14,6 +18,23 @@
     <div id="thirdgraph" style="display: inline"></div>
     <div id="fourthgraph" style="display: inline"></div>
 </div>
+
+<h2>Data Processing:</h2>
+
+<p>
+
+    The data required for the visualisation was processed manually in Excel and the dataset provided by the faculty was
+    used for the
+    analysis.
+    It can be found at: <a
+        href="https://data.london.gov.uk/dataset/the-rising-cost-of-living-and-its-effects-on-londoners"> Rising Cost of
+        living and its effects on Londoners</a>
+    In terms of preprocessing steps, the different types of expenses was extracted. Levels were created so that the
+    data required for the different visualisations
+    can be filtered accordingly. Lastly, a hierarchical structure was formed to distinguish the data for the primary
+    and secondary charts.
+</p>
+
 <!-- A bit of style -->
 <style>
     .axis {
@@ -42,7 +63,7 @@
         .style("border-radius", "5px")
         .style("padding", "5px")
 
-    // append the svg object to the body of the page
+    // append the svgs object to the body of the page
     var svg = d3.select("#primarygraph")
         .append("svg")
         .attr("width", width + margin.left + margin.right)
@@ -81,7 +102,7 @@
         // Get the Level 1 categories
         var dataFilter = data.filter(function (d) { return d.level == "level1" })
 
-        // Color scale: give me a specie name, I return a color
+        // Color scale
         var color = d3.scaleOrdinal()
             .domain(dataFilter.map(function (d) { return d.category; }))
             .range(["#332288", "#117733", "#44AA99", "#88CCEE", "#DDCC77", "#CC6677", "#AA4499"])
@@ -100,7 +121,6 @@
             name = dimensions[i]
             y[name] = d3.scaleLinear()
                 .domain([0, 60]) // --> Same axis range for each group
-                // --> different axis range for each group --> .domain( [d3.extent(data, function(d) { return +d[name]; })] )
                 .range([height, 0])
         }
 
@@ -134,7 +154,7 @@
             .enter()
             .append("rect")
             .attr("x", 435)
-            .attr("y", function (d, i) { return 10 + i * (size + 5) }) // 100 is where the first dot appears. 25 is the distance between dots
+            .attr("y", function (d, i) { return 10 + i * (size + 5) })
             .attr("width", size)
             .attr("height", size)
             .style("fill", function (d) { return color(d) })
@@ -144,7 +164,7 @@
             .enter()
             .append("text")
             .attr("x", 435 + size * 1.2)
-            .attr("y", function (d, i) { return 10 + i * (size + 5) + (size / 2) }) // 100 is where the first dot appears. 25 is the distance between dots
+            .attr("y", function (d, i) { return 10 + i * (size + 5) + (size / 2) })
             .style("fill", "black")
             .text(function (d) { return d })
             .attr("text-anchor", "left")
@@ -153,7 +173,7 @@
 
         // Highlight the specie that is hovered
         var highlight = function (d) {
-
+            // Tooltip is made visible
             div.transition()
                 .duration(200)
                 .style("opacity", .9);
@@ -176,7 +196,8 @@
                 .style("stroke", color(selected_specie))
                 .style("opacity", "1")
 
-            // Second graph code starts here 
+            // Second graph code starts here
+            // Filter out the data for the second graph
             var levelFilter = data.filter(function (d) { return (d.level == "level2" && d.supercategory == selected_specie) })
 
             // Create long format data to find min and max dynamically
@@ -195,6 +216,7 @@
 
             var range = d3.extent(transposedData, function (d) { return +d.percent; })
 
+            // Color scale
             var color2 = d3.scaleOrdinal()
                 .domain(levelFilter.map(function (d) { return d.category; }))
                 .range(["#332288", "#117733", "#44AA99", "#88CCEE", "#DDCC77"])
@@ -205,7 +227,6 @@
                 name = dimensions[i]
                 y2[name] = d3.scaleLinear()
                     .domain([0, (Math.round(range[1] / 10) * 10) + 5]) // --> Same axis range for each group
-                    // --> different axis range for each group --> .domain( [d3.extent(data, function(d) { return +d[name]; })] )
                     .range([height, 0])
             }
 
@@ -219,6 +240,7 @@
                 return d3.line()(dimensions.map(function (p) { return [x2(p), y2[p](d[p])]; }));
             }
 
+            // Draw the lines
             svg2
                 .selectAll("myPath")
                 .data(levelFilter)
@@ -318,7 +340,6 @@
                 name = dimensions[i]
                 y3[name] = d3.scaleLinear()
                     .domain([0, (Math.round(range3[1] / 10) * 10) + 5]) // --> Same axis range for each group
-                    // --> different axis range for each group --> .domain( [d3.extent(data, function(d) { return +d[name]; })] )
                     .range([height, 0])
             }
 
@@ -332,6 +353,7 @@
                 return d3.line()(dimensions.map(function (p) { return [x3(p), y3[p](d[p])]; }));
             }
 
+            // Draw the lines
             svg3
                 .selectAll("myPath")
                 .data(levelFilter3)
@@ -430,7 +452,6 @@
                 name = dimensions[i]
                 y4[name] = d3.scaleLinear()
                     .domain([0, (Math.round(range4[1] / 10) * 10) + 5]) // --> Same axis range for each group
-                    // --> different axis range for each group --> .domain( [d3.extent(data, function(d) { return +d[name]; })] )
                     .range([height, 0])
             }
 
