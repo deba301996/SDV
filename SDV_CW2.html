@@ -8,8 +8,9 @@
 <!-- Load d3.js -->
 <script src="https://d3js.org/d3.v4.js"></script>
 
-<!-- Create a div where the graph will take place -->
+<h3>What do different sections of the London population feel towards cost of living across various expenses?</h3>
 
+<!-- Create a div where the graph will take place -->
 <div style="white-space: nowrap;">
     <div id="primarygraph" style="display: inline"></div>
     <div id="secondgraph" style="display: inline"></div>
@@ -19,7 +20,7 @@
     <div id="fourthgraph" style="display: inline"></div>
 </div>
 
-<h2>Data Processing:</h2>
+<h3>Data Processing:</h3>
 
 <p>
 
@@ -32,7 +33,8 @@
     In terms of preprocessing steps, the different types of expenses was extracted. Levels were created so that the
     data required for the different visualisations
     can be filtered accordingly. Lastly, a hierarchical structure was formed to distinguish the data for the primary
-    and secondary charts.
+    and secondary charts. For the purpose of the visualisation, the pre-processed data is hosted on <a
+        href="https://github.com/deba301996/SDV/blob/main/SurveyDataCleaned.csv">Github</a>
 </p>
 
 <!-- A bit of style -->
@@ -182,7 +184,7 @@
                 .style("top", (d3.mouse(this)[1] + 20) + "px")
                 .style("font-size", "12.5px");
 
-            //d3.event.preventDefault();
+            d3.event.preventDefault();
             selected_specie = d.category
 
             // first every group turns grey
@@ -569,8 +571,8 @@
             .style("stroke-width", 3)
             .style("stroke", function (d) { return (color(d.category)) })
             .style("opacity", 1)
-            .on("mouseover", highlight)
-            .on("mouseleave", doNotHighlight)
+            .on("click", highlight)
+            .on("mousedown", doNotHighlight)
 
         // Draw the axis:
         svg.selectAll("myAxis")
